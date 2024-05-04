@@ -1,0 +1,5 @@
+*GET, MatTypTot, MAT, 0,COUNT
+*DO, CurMatTyp, 1, MatTypTot, 1
+	MP, REFT, CurMatTyp, ARG1
+*ENDDO
+
