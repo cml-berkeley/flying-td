@@ -1,0 +1,4 @@
+hstar.dat must contain spacing defined as "d+ys" in nm
+adhesion.dat must contain adhesion pressure in Pa
+contact.dat must contain contact pressure in Pa
+friction.dat must contain friction pressure in Pa
