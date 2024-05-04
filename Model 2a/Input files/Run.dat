@@ -1,0 +1,89 @@
+CML Version 6.056  RUN.DAT  4.24
+REPORT BUGS TO INFO@CML.ME.BERKELEY.EDU
+***************Solution Control***************
+istiff isolv   ioldg   iadpt   isave
+ 1      1       0       1       1
+***************Intial Attitude***************
+hm(m)          pitch(rad)     roll(rad)
++1.3100E-08    +3.8000E-05    +0.0000E+00
+***************Runs***************
+irad           irpm           ialt         sort
+ 1             1              1              0             
+radii(m)
+   2.7000E-002    
+skews(deg)
+   9.4300E-001    
+RPMs
+   5.4000E+003    
+altitudes(m)
+   0.0000E+000    
+***************Air Parameters***************
+p0(pa)         al(m)          vis(nsm^-2)
+1.013250E+005  6.350000E-008  1.860000E-005 
+***************Load Parameters***************
+f0(kg)         xf0(m)         yf0(m)         psa            rsa            usestiff
+3.7000E-003    0.0000E+000    0.0000E+000    0.0000E+000    0.0000E+000    0
+xfs(µNM)       yfs(µNM)       emax           skp            skr
+0.6500E+000    0.0000E+000    5.0000E-004    1.7450E-005    1.7450E-005   
+***************Grid Control***************
+nx      ny
+ 401     401
+nsx      nsy     isymm
+ 1       1       0      
+xnt(i), i = 2, nsx
+ 
+nxt(i), i = 2, nsx
+ 
+dxr(i), i = 1, nsx
+ 1 
+ynt(i), i = 2, nsy
+
+nyt(i), i = 2, nsy
+ 
+dyr(i), i = 1, nsy
+ 1 
+**************Adaptive Grid****************
+difmax_x        decay_x        ipmax_x      iadaptmode_x
+ 60             20             0            1           
+difmax_y        decay_y        ipmax_y
+ 60             20             0           
+********Mesh Refinement in X Direction*******
+numXRegions
+1
+Lower         Upper          Amount
+ 0.000785       0.0008435      6             
+*******Mesh Refinement in Y Direction********
+numYRegions
+1
+Lower         Upper          Amount
+ 0.0003         0.0004         5             
+***************Reynolds Equation***************
+ischeme        imdoel         akmax         beta           gamma         accommodation   mgnest
+ 2              3             1.0000E-008    6.0000E+000    6.0000E+000    1.0000E+000   4             
+***************Partial Contact***************
+icmodel        stdasp(m)      dnsasp(m^-2)   ConstantA      ConstantB
+ 0             5.0000E-010    5.0000E+015    1.0000E-019    1.0000E-076   
+rdsasp(m)      eyoung(pa)     yldstr(pa)     elecpot(v)
+2.0000E-008    1.1159E+011    1.0000E+012    0.0000E+000   
+frcoe          pratio
+ 0.3            0.3
+********************SBL_params**********************
+  g_lube_thick(m)   g_air_diam(m)  if_mod_fh  if_eff_area  size   
+  1.0E-009          0.30000E-009    1          1           122                       
+***************Sensitivities***************
+crowninc(m)    camberinc(m)   twistinc(m)
+0.0000E+000    0.0000E+000    0.0000E+000   
+tlnginc(m)     tanginc(rad)   loadinc(kg)
+0.0000E+000    0.0000E+000    0.0000E+000   
+ptrqinc(µNM)   rtrquinc(µNM)  recessinc(m)
+0.0000E+000    0.0000E+000    0.0000E+000   
+iwscale
+ 1
+***********************Additional Parameters*******************
+  output_shear   use_imf        use_standard_air
+  0              1              1
+  do_humidity    temperature    humidity
+  0              25.000000      50.000000
+***************Comments***************
+"PTorque value changed from 0.6 to 0.32
+leading pad reduced to reduce pitch angle"

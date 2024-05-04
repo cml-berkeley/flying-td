@@ -1,0 +1,253 @@
+!AR42: the counter for iterations
+!AR44: current NFH
+!AR33: Upper limit, if delta(FH) is less than AR33, then converge
+!AR34: which FH is used for convergence 0: NFH, 1,2,3,4: interested points
+! exit current processor and clear for a new start
+FINISH
+/CLEAR
+/TITLE,CMLTFC
+/FILNAME,CMLTFC,1
+!
+! check the existence of TFCrun.dat
+/INQUIRE, CML_IF_EXIST_, EXIST, TFCrun, dat
+*IF, CML_IF_EXIST_, EQ, 0, THEN
+	*MSG, FATAL, 'No TFCrun.dat provided!'
+%C
+*ENDIF
+!
+! read AR42: the counter for iterations
+*DIM,ITER,,1
+*CFOPEN,main_iteration_count,dat
+*Vread,ITER(1),main_iteration_count,dat
+(F15.5)
+*CFCLOS
+AR42=NINT(ITER(1))
+!
+! read TFCrun.dat
+*SREAD,CMLL_TFCLINES_,TFCrun.dat
+*GET,CMLL_TFCLINETOT_,PARM,CMLL_TFCLINES_,DIM,2
+CMLL_J1_=$CMLL_J6_=
+! locating the intested sections
+*DO,CMLL_I_,1,CMLL_TFCLINETOT_
+	CMLL_STR1_=STRCOMP(CMLL_TFCLINES_(1,CMLL_I_))
+	*IF,CMLL_STR1_,EQ,'ansysmodel',THEN
+		CMLL_J1_=CMLL_I_+3
+	*ELSEIF, CMLL_STR1_, EQ, 'convergence'
+		CMLL_J6_=CMLL_I_+3
+	*ELSEIF, CMLL_STR1_, EQ, 'dbfilename'
+		CMLL_J8_=CMLL_I_+2
+      *ENDIF
+*ENDDO
+! check if these sections are defined
+*GET, CML_IF_EXIST_, PARM, CMLL_J1_, TYPE
+*IF, CML_IF_EXIST_, EQ, -1, THEN
+	*MSG, FATAL, 'missing ansys model ', 'information in TFCrun.dat!'	
+%C %C
+*ENDIF
+*GET, CML_IF_EXIST_, PARM, CMLL_J6_, TYPE
+*IF, CML_IF_EXIST_, EQ, -1, THEN
+	*MSG, FATAL, 'missing convergence ', 'information in TFCrun.dat!'	
+%C %C
+*ENDIF
+*GET, CML_IF_EXIST_, PARM, CMLL_J8_, TYPE
+*IF, CML_IF_EXIST_, EQ, -1, THEN
+	*MSG, FATAL, 'missing .db file name ', 'in TFCrun.dat!'	
+%C %C
+*ENDIF
+!
+! first get the name of the db file
+CMLL_DBNAME_=STRLEFT(CMLL_TFCLINES_(1,CMLL_J8_))
+! get unit system ID
+CMLL_STR1_=STRLEFT(CMLL_TFCLINES_(1,CMLL_J1_))
+CMLL_BLKLOC_=STRPOS(CMLL_STR1_,' ')
+CMLL_UNITSYSID_=VALCHR(STRSUB(CMLL_STR1_,1,CMLL_BLKLOC_-1))
+! get the orientation ID
+CMLL_STR1_=STRSUB(CMLL_STR1_,CMLL_BLKLOC_,STRLENG(CMLL_STR1_)-CMLL_BLKLOC_+1)
+CMLL_ORTID_=VALCHR(CMLL_STR1_)
+! get the criterion for convergence
+CMLL_STR1_=STRLEFT(CMLL_TFCLINES_(1,CMLL_J6_))
+CMLL_BLKLOC_=STRPOS(CMLL_STR1_,' ')
+AR34=VALCHR(STRSUB(CMLL_STR1_,1,CMLL_BLKLOC_-1))
+CMLL_STR1_=STRSUB(CMLL_STR1_,CMLL_BLKLOC_,STRLENG(CMLL_STR1_)-CMLL_BLKLOC_+1)
+AR33=VALCHR(CMLL_STR1_)
+! Get maximum iteration number
+CMLL_J6_=CMLL_J6_+2
+CMLL_STR1_=STRLEFT(CMLL_TFCLINES_(1,CMLL_J6_))
+CMLL_BLKLOC_=STRPOS(CMLL_STR1_,' ')
+AR60=VALCHR(STRSUB(CMLL_STR1_,1,CMLL_BLKLOC_-1))
+!
+! Check existence of required files
+/INQUIRE, CML_IF_EXIST_, EXIST, CMLL_DBNAME_,db
+*IF, CML_IF_EXIST_, EQ, 0, THEN
+	*MSG, FATAL, 'No specified db file provided!'
+%C
+*ENDIF
+/INQUIRE, CML_IF_EXIST_, EXIST, quick, exe
+*IF, CML_IF_EXIST_, EQ, 0, THEN
+	*MSG, FATAL, 'No quick solver provided!'
+%C
+*ENDIF
+/INQUIRE, CML_IF_EXIST_, EXIST, run, dat
+*IF, CML_IF_EXIST_, EQ, 0, THEN
+	*MSG, FATAL, 'No run.dat provided!'
+%C
+*ENDIF
+/INQUIRE, CML_IF_EXIST_, EXIST, rail, dat
+*IF, CML_IF_EXIST_, EQ, 0, THEN
+	*MSG, FATAL, 'No rail.dat provided!'
+%C
+*ENDIF
+/INQUIRE, CML_IF_EXIST_, EXIST, GetDimen, mac
+*IF, CML_IF_EXIST_, EQ, 0, THEN
+	*MSG, FATAL, 'Macro GetDimen missing!'
+%C
+*ENDIF
+/INQUIRE, CML_IF_EXIST_, EXIST, SolDeformMag, mac
+*IF, CML_IF_EXIST_, EQ, 0, THEN
+	*MSG, FATAL, 'Macro SolDeformMag missing!'
+%C
+*ENDIF
+/INQUIRE, CML_IF_EXIST_, EXIST, ModRefTemp, mac
+*IF, CML_IF_EXIST_, EQ, 0, THEN
+	*MSG, FATAL, 'Macro ModRefTemp missing!'
+%C
+*ENDIF
+/INQUIRE, CML_IF_EXIST_, EXIST, SwitchElemKoptEh, mac
+*IF, CML_IF_EXIST_, EQ, 0, THEN
+	*MSG, FATAL, 'Macro SwitchElemKoptEh missing!'
+%C
+*ENDIF
+!
+! generate ModelDimen.dat
+*USE,GetDimen.mac,CMLL_ORTID_,CMLL_UNITSYSID_
+! Write progress to TFCresult.dat
+*CFOPEN, TFCresult, dat
+*VWRITE, 'This file contains information', 'about current TFC simulation.'
+%C %C %/
+*CFCLOS
+
+!!!!!!!!!!!!!!!!!!!!!!!! Run CML Air !!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+/SYS,quick.exe
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+! get new FH
+	*SREAD,CMLL_LINES,result.dat
+	*GET,CMLL_LINETOT,PARM,CMLL_LINES,DIM,2
+	CMLL_J=
+	*DO,CMLL_I,1,CMLL_LINETOT
+		CMLL_STR1=STRSUB(STRLEFT(CMLL_LINES(1,CMLL_I)),1,5)
+		*IF,CMLL_STR1,EQ,'ERROR',THEN
+			CMLL_J=CMLL_I
+			*EXIT
+		*ENDIF
+	*ENDDO
+! check if result.dat is well written
+	*GET, CML_IF_EXIST_, PARM, CMLL_J, TYPE
+	*IF, CML_IF_EXIST_, EQ, -1, THEN
+	*MSG, FATAL, 'result.dat is not complete. '	
+%C
+	*ENDIF
+	! get the nfh from result.dat
+	CMLL_STR1=STRLEFT(CMLL_LINES(1,CMLL_J+1))
+	CMLL_BLKLOC=STRPOS(CMLL_STR1,' ')
+	CMLL_ERROR=VALCHR(STRSUB(CMLL_STR1,1,CMLL_BLKLOC-1))
+	CMLL_STR1=STRLEFT(STRSUB(CMLL_STR1,CMLL_BLKLOC,STRLENG(CMLL_STR1)-CMLL_BLKLOC+1))
+	CMLL_BLKLOC=STRPOS(CMLL_STR1,' ')
+	CMLL_NFH=VALCHR(STRSUB(CMLL_STR1,1,CMLL_BLKLOC-1))
+	! get the fh's for 4 intested points
+	*DIM,CMLL_FH,ARRAY,4
+	*VREAD,CMLL_FH,result,dat,,,,,,CMLL_J+3
+(4E13.25)
+
+!!!!!!!!!!!!!!!!!!!!!! Sid write FH !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+*DIM,FH_save1,,120
+*CFOPEN,FH_save1,dat
+*VREAD,FH_save1(1),FH_save1,dat
+(F15.11)
+FH_save1(AR42,1) = CMLL_FH(1,1,1)
+*VWRITE,FH_save1(1)
+(F15.11,' ',F15.11)
+*CFCLOS
+
+*DIM,FH_save2,,120
+*CFOPEN,FH_save2,dat
+*VREAD,FH_save2(1),FH_save2,dat
+(F15.11)
+FH_save2(AR42,1) = CMLL_FH(2,1,1)
+*VWRITE,FH_save2(1)
+(F15.11,' ',F15.11)
+*CFCLOS
+
+*DIM,FH_save3,,120
+*CFOPEN,FH_save3,dat
+*VREAD,FH_save3(1),FH_save3,dat
+(F15.11)
+FH_save3(AR42,1) = CMLL_FH(3,1,1)
+*VWRITE,FH_save3(1)
+(F15.11,' ',F15.11)
+*CFCLOS
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! If slider crashed, exit
+	*IF, CMLL_ERROR, EQ, -1.0, THEN
+*DIM,slider_crash,,1
+slider_crash(1) = 0
+*CFOPEN,slider_crash,dat
+*VWRITE,slider_crash(1)
+(F15.5,' ',F15.5)
+*CFCLOS 
+		*MSG, FATAL, 'Slider crashed! '	
+%C
+	*ELSE
+*DIM,slider_crash,,1
+slider_crash(1) = 1
+*CFOPEN,slider_crash,dat
+*VWRITE,slider_crash(1)
+(F15.5,' ',F15.5)
+*CFCLOS 
+	*ENDIF
+! Set the current convergence criterion
+	*IF,AR34,EQ,0,THEN
+		AR44=CMLL_NFH
+	*ELSE
+		AR44=CMLL_FH(AR34)
+	*ENDIF
+! update output
+	*CFOPEN, TFCresult, dat, , APPEND
+	*VWRITE, 'Flying-height ', 'of iteration ', AR42, ' is ', AR44, 'nm'
+%C %C %8d %C %10.5F %C %/
+	*CFCLOS
+! clean up
+	CMLL_LINES=$CMLL_LINETOT=$CMLL_I=$CMLL_STR1=$CMLL_J=$CMLL_BLKLOC=$CMLL_NFH=$CMLL_FH=$CMLL_ERROR=$FH_save1=$FH_save2=$FH_save3=
+
+!delete intermediate files
+!/DELETE,CMLTFC,BCS
+!/DELETE,CMLTFC,cnd
+!/DELETE,CMLTFC,err
+!/DELETE,CMLTFC,esav
+!/DELETE,CMLTFC,full
+!/DELETE,CMLTFC,log
+!/DELETE,CMLTFC,page
+!/DELETE,CMLTFC,PVTS
+!/DELETE,CMLTFC,rst
+!/DELETE,CMLTFC,rth
+!/DELETE,CMLTFC,sda
+!/DELETE,CMLTFC,stat
+!/DELETE,Usergeom01,dat
+!/DELETE,ModelDimen,dat
+!
+! output results to TFCresult.dat
+! Open the result file
+*CFOPEN, TFCresult, dat, , APPEND
+! Save the total of the iterations
+*VWRITE, 'Total number of iterations: ', AR42
+%C %8d
+! Save the final difference in NFH
+*VWRITE, 'Difference in FH(nm): ', ABS(AR43-AR44)
+%C %10.5F
+! Get the reference displacement saved in RefDisp.dat
+*DIM, CMLL_REFDISP_
+*VREAD, CMLL_REFDISP_, RefDisp, dat
+(F10.5)

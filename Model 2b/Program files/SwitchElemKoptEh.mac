@@ -1,0 +1,73 @@
+!ARG1: 1:VOLT,2:TEMP,3:UX/UY/UZ
+!DEBUG
+!ARG1=3
+!
+*DEL,MaxElemType,,nopr
+*DEL,CurrElemType,,nopr
+*DEL,CurrTypeID,,nopr
+!
+*GET,MaxElemType,ETYP,,NUM,MAX
+*IF,MaxElemType,EQ,0,THEN
+	*RETURN,-1
+*ENDIF
+!
+*IF,ARG1,EQ,2,THEN
+	ETCHG,MTT
+*ELSEIF,ARG1,EQ,3
+	ETCHG,TTS
+*ENDIF
+!
+*DO,CurrElemType,1,MaxElemType,1
+	*GET,CurrTypeID,ETYP,CurrElemType,ATTR,ENAM
+	*IF,ARG1,EQ,1,THEN
+		*IF,CurrTypeID,eq,5,THEN
+			KEYOPT,CurrElemType,1,9
+		*ELSEIF,CurrTypeID,eq,98
+			KEYOPT,CurrElemType,1,9
+		*ELSEIF,CurrTypeID,eq,173
+			KEYOPT,CurrElemType,1,6
+		*ELSEIF,CurrTypeID,eq,174
+			KEYOPT,CurrElemType,1,6
+		*ELSEIF,CurrTypeID,eq,171
+			KEYOPT,CurrElemType,1,6
+		*ELSEIF,CurrTypeID,eq,172
+			KEYOPT,CurrElemType,1,6
+		*ELSEIF,CurrTypeID,eq,175
+			KEYOPT,CurrElemType,1,6
+		*ENDIF
+	*ELSEIF,ARG1,EQ,2
+		*IF,CurrTypeID,eq,5,THEN
+			KEYOPT,CurrElemType,1,8
+		*ELSEIF,CurrTypeID,eq,98
+			KEYOPT,CurrElemType,1,8
+		*ELSEIF,CurrTypeID,eq,173
+			KEYOPT,CurrElemType,1,2
+		*ELSEIF,CurrTypeID,eq,174
+			KEYOPT,CurrElemType,1,2
+		*ELSEIF,CurrTypeID,eq,171
+			KEYOPT,CurrElemType,1,2
+		*ELSEIF,CurrTypeID,eq,172
+			KEYOPT,CurrElemType,1,2
+		*ELSEIF,CurrTypeID,eq,175
+			KEYOPT,CurrElemType,1,2
+		*ENDIF
+	*ELSEIF,ARG1,EQ,3
+		*IF,CurrTypeID,eq,5,THEN
+			KEYOPT,CurrElemType,1,2
+		*ELSEIF,CurrTypeID,eq,98
+			KEYOPT,CurrElemType,1,2
+		*ELSEIF,CurrTypeID,eq,173
+			KEYOPT,CurrElemType,1,0
+		*ELSEIF,CurrTypeID,eq,174
+			KEYOPT,CurrElemType,1,0
+		*ELSEIF,CurrTypeID,eq,171
+			KEYOPT,CurrElemType,1,0
+		*ELSEIF,CurrTypeID,eq,172
+			KEYOPT,CurrElemType,1,0
+		*ELSEIF,CurrTypeID,eq,175
+			KEYOPT,CurrElemType,1,0
+		*ENDIF
+	*ENDIF
+*ENDDO
+
+MaxElemType=$CurrElemType=$CurrTypeID=

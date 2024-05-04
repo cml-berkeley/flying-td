@@ -1,0 +1,142 @@
+!***************************************************************************************************************************
+!This macro gets the dimensions of ansys model and save it in an file: ModelDimen.dat
+!this is for quick.exe to calculate the filmcoefficient at proper ansys coordinates
+!ARG1: Orientation ID of Ansys model
+!ARG2: Unit system 1: m  2:um
+!***************************************************************************************************************************
+
+!OPEN THE MODEL
+FINISH
+/CLEAR
+*SREAD,CML_TFCLINES_,TFCrun.dat
+*GET,CML_TFCLINETOT_,PARM,CML_TFCLINES_,DIM,2
+CML_J8_=
+*DO,CML_I_,1,CML_TFCLINETOT_
+	CML_STR1_=STRCOMP(CML_TFCLINES_(1,CML_I_))
+	*IF, CML_STR1_, EQ, 'dbfilename', THEN
+		CML_J8_=CML_I_+2
+      *ENDIF
+*ENDDO
+
+/PREP7
+! GET NAME OF THE DB FILE
+CML_DBNAME_=STRLEFT(CML_TFCLINES_(1,CML_J8_))
+!RESUME MODEL
+/PREP7
+RESUME,CML_DBNAME_,db
+!
+!ACTIVATE GLOBAL CARTISIAN SYSTEM
+CSYS,0
+ALLSEL
+!
+*IF,ARG1,EQ,1,THEN
+	*GET,LengthMax,NODE,0,MXLOC,X
+	*GET,WidthMax,NODE,0,MXLOC,Y
+	*SET,OreintType,1
+*ELSEIF,ARG1,EQ,2
+	*GET,LengthMax,NODE,0,MXLOC,X
+	*GET,WidthMax,NODE,0,MXLOC,Y
+	*SET,OreintType,2
+*ELSEIF,ARG1,EQ,3
+	*GET,LengthMax,NODE,0,MXLOC,X
+	*GET,WidthMax,NODE,0,MXLOC,Z
+	*SET,OreintType,2
+*ELSEIF,ARG1,EQ,4
+	*GET,LengthMax,NODE,0,MXLOC,X
+	*GET,WidthMax,NODE,0,MXLOC,Z
+	*SET,OreintType,1
+*ELSEIF,ARG1,EQ,5
+	*GET,LengthMax,NODE,0,MXLOC,X
+	*GET,WidthMax,NODE,0,MXLOC,Y
+	*SET,OreintType,4
+*ELSEIF,ARG1,EQ,6
+	*GET,LengthMax,NODE,0,MXLOC,X
+	*GET,WidthMax,NODE,0,MXLOC,Y
+	*SET,OreintType,3
+*ELSEIF,ARG1,EQ,7
+	*GET,LengthMax,NODE,0,MXLOC,X
+	*GET,WidthMax,NODE,0,MXLOC,Z
+	*SET,OreintType,3
+*ELSEIF,ARG1,EQ,8
+	*GET,LengthMax,NODE,0,MXLOC,X
+	*GET,WidthMax,NODE,0,MXLOC,Z
+	*SET,OreintType,4
+*ELSEIF,ARG1,EQ,9
+	*GET,LengthMax,NODE,0,MXLOC,Y
+	*GET,WidthMax,NODE,0,MXLOC,Z
+	*SET,OreintType,1
+*ELSEIF,ARG1,EQ,10
+	*GET,LengthMax,NODE,0,MXLOC,Y
+	*GET,WidthMax,NODE,0,MXLOC,Z
+	*SET,OreintType,2
+*ELSEIF,ARG1,EQ,11
+	*GET,LengthMax,NODE,0,MXLOC,Y
+	*GET,WidthMax,NODE,0,MXLOC,X
+	*SET,OreintType,2
+*ELSEIF,ARG1,EQ,12
+	*GET,LengthMax,NODE,0,MXLOC,Y
+	*GET,WidthMax,NODE,0,MXLOC,X
+	*SET,OreintType,1
+*ELSEIF,ARG1,EQ,13
+	*GET,LengthMax,NODE,0,MXLOC,Y
+	*GET,WidthMax,NODE,0,MXLOC,Z
+	*SET,OreintType,4
+*ELSEIF,ARG1,EQ,14
+	*GET,LengthMax,NODE,0,MXLOC,Y
+	*GET,WidthMax,NODE,0,MXLOC,Z
+	*SET,OreintType,3
+*ELSEIF,ARG1,EQ,15
+	*GET,LengthMax,NODE,0,MXLOC,Y
+	*GET,WidthMax,NODE,0,MXLOC,X
+	*SET,OreintType,3
+*ELSEIF,ARG1,EQ,16
+	*GET,LengthMax,NODE,0,MXLOC,Y
+	*GET,WidthMax,NODE,0,MXLOC,X
+	*SET,OreintType,4
+*ELSEIF,ARG1,EQ,17
+	*GET,LengthMax,NODE,0,MXLOC,Z
+	*GET,WidthMax,NODE,0,MXLOC,X
+	*SET,OreintType,1
+*ELSEIF,ARG1,EQ,18
+	*GET,LengthMax,NODE,0,MXLOC,Z
+	*GET,WidthMax,NODE,0,MXLOC,X
+	*SET,OreintType,2
+*ELSEIF,ARG1,EQ,19
+	*GET,LengthMax,NODE,0,MXLOC,Z
+	*GET,WidthMax,NODE,0,MXLOC,Y
+	*SET,OreintType,2
+*ELSEIF,ARG1,EQ,20
+	*GET,LengthMax,NODE,0,MXLOC,Z
+	*GET,WidthMax,NODE,0,MXLOC,Y
+	*SET,OreintType,1
+*ELSEIF,ARG1,EQ,21
+	*GET,LengthMax,NODE,0,MXLOC,Z
+	*GET,WidthMax,NODE,0,MXLOC,X
+	*SET,OreintType,4
+*ELSEIF,ARG1,EQ,22
+	*GET,LengthMax,NODE,0,MXLOC,Z
+	*GET,WidthMax,NODE,0,MXLOC,X
+	*SET,OreintType,3
+*ELSEIF,ARG1,EQ,23
+	*GET,LengthMax,NODE,0,MXLOC,Z
+	*GET,WidthMax,NODE,0,MXLOC,Y
+	*SET,OreintType,3
+*ELSEIF,ARG1,EQ,24
+	*GET,LengthMax,NODE,0,MXLOC,Z
+	*GET,WidthMax,NODE,0,MXLOC,Y
+	*SET,OreintType,4
+*ENDIF
+! 
+
+*IF, ARG2,EQ,2,THEN
+	LengthMax=LengthMax*1E-6
+	WidthMax=WidthMax*1E-6
+*ENDIF
+
+*CFOPEN,ModelDimen,dat
+*VWRITE,OreintType,LengthMax,WidthMax,ARG2
+(F5.1,'   ',E15.9,'   ',E15.9,'   ',F5.1)
+*CFCLOS
+
+LengthMax=$WidthMax=$OrientType=$CML_DBNAME_=
+

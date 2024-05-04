@@ -1,0 +1,51 @@
+finish
+/clear
+RESUME,'WD_Joanna_fine_try6b_fine2','db','C:\Users\siddhesh_sakhalkar\Desktop\Siddhesh - Joanna model - modif - disk - broyden - phonon - usergeom_vs_fh -SBL-fric-pres-fine',0,0 ! change path
+
+/prep7
+
+*GET,sliderthickness, NODE, 0, MXLOC,Z
+nsel,s,loc,z,sliderthickness,sliderthickness+0.01
+ET,2,SURF152
+KEYOPT,2,8,2
+type,2
+ESURF,0
+NUMCMP,ELEM 
+
+esel,s,type,,2
+*Get,surf_elenum,ELEM,0,count
+*Get,surf_nodenum,NODE,0,count
+
+*DIM,ele_x,,surf_elenum,3
+*DIM,ele_y,,surf_elenum,3
+
+ESEL,S,TYPE, ,2
+*get,cur_ele,ELEM,0,NUM,min
+
+*do,KK,1,surf_elenum,1
+	*get,nodenum_1,ELEM,cur_ele,NODE,1
+	*get,nodenum_2,ELEM,cur_ele,NODE,2
+	*get,nodenum_3,ELEM,cur_ele,NODE,3
+
+	*get,ele_x(KK,1),NODE,nodenum_1,LOC,X	
+	*get,ele_x(KK,2),NODE,nodenum_2,LOC,X	
+	*get,ele_x(KK,3),NODE,nodenum_3,LOC,X	
+
+	*get,ele_y(KK,1),NODE,nodenum_1,LOC,Y	
+	*get,ele_y(KK,2),NODE,nodenum_2,LOC,Y	
+	*get,ele_y(KK,3),NODE,nodenum_3,LOC,Y	
+
+	*get,cur_ele,ELEM,cur_ele,NXTH
+*enddo
+
+*CFOPEN,ele_x,dat
+*Vwrite,ele_x(1,1),ele_x(1,2),ele_x(1,3)
+(F15.5,' ',F15.5,' ',F15.5)
+*CFCLOS
+
+*CFOPEN,ele_y,dat
+*Vwrite,ele_y(1,1),ele_y(1,2),ele_y(1,3)
+(F15.5,' ',F15.5,' ',F15.5)
+*CFCLOS
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

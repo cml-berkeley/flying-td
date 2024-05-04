@@ -1,0 +1,61 @@
+db file name
+**************************************
+slider_FEM_model
+
+thermal model
+**************************************
+ModelType
+2
+
+ansys model
+**************************************
+unit    orient
+2       1
+pad1    pad2
+16      15
+refTemp(C)
+25
+
+heater
+**************************************
+power(mW)  res(ohms)
+0           5
+
+mapping
+**************************************
+xmin       xmax
+0.6        1
+ymin       ymax
+0.25       0.75    
+nx         ny
+401        401 
+
+constraints
+**************************************
+backfixed
+1
+
+loads
+**************************************
+pres
+0
+
+cooling
+**************************************
+back     side         (W/(m.m.k))   
+2000    100 
+
+
+convergence
+**************************************
+criterion   limit(nm)         
+1           0.05
+Max. num. of Iteration
+20 
+
+air parameters
+**************************************
+Kair(W/(m.K))    gamma       Pr       sigma_T
+2.64e-2          1.4         0.710        0.9
+    
+

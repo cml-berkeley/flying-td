@@ -1,0 +1,852 @@
+! read AR42: the counter for iterations
+*DIM,ITER,,1
+*CFOPEN,main_iteration_count,dat
+*Vread,ITER(1),main_iteration_count,dat
+(F15.5)
+*CFCLOS
+AR42=NINT(ITER(1))
+!
+!get the name for the db file
+*SREAD,CML_TFCLINES_,TFCrun.dat
+*GET,CML_TFCLINETOT_,PARM,CML_TFCLINES_,DIM,2
+CML_J8_=
+*DO,CML_I_,1,CML_TFCLINETOT_
+	CML_STR1_=STRCOMP(CML_TFCLINES_(1,CML_I_))
+	*IF, CML_STR1_, EQ, 'dbfilename', THEN
+		CML_J8_=CML_I_+2
+      *ENDIF
+*ENDDO
+CML_DBNAME_=STRLEFT(CML_TFCLINES_(1,CML_J8_))
+!resume the model
+/PREP7
+RESUME,CML_DBNAME_,db
+!
+!read run.dat
+!remember the line number for nx, ny and temperature
+*SREAD,CML_RUNLINES_,run.dat
+*GET,CML_LINETOT_,PARM,CML_RUNLINES_,DIM,2
+*DO,CML_I_,1,CML_LINETOT_
+	CML_STR1_=STRCOMP(CML_RUNLINES_(1,CML_I_))
+	*IF,CML_STR1_,EQ,'nxny',then
+		CML_J_=CML_I_+1
+	*ELSEIF,CML_STR1_,EQ,'do_humiditytemperaturehumidity'
+            CML_K_=CML_I_+1
+      *ENDIF
+*ENDDO
+!get nx, ny
+CML_STR1_=STRLEFT(CML_RUNLINES_(1,CML_J_))
+CML_BLKLOC_=STRPOS(CML_STR1_,' ')
+CML_CMLGRIDNX_=VALCHR(STRSUB(CML_STR1_,1,CML_BLKLOC_-1))
+CML_CMLGRIDNY_=VALCHR(STRSUB(CML_STR1_,CML_BLKLOC_,STRLENG(CML_STR1_)-CML_BLKLOC_+1))
+!get ambient temperature
+CML_STR1_=STRLEFT(CML_RUNLINES_(1,CML_K_))
+CML_BLKLOC_=STRPOS(CML_STR1_,' ')
+CML_STR1_=STRSUB(CML_STR1_,CML_BLKLOC_,STRLENG(CML_STR1_)-CML_BLKLOC_+1)
+CML_STR1_=STRLEFT(CML_STR1_)
+CML_BLKLOC_=STRPOS(CML_STR1_,' ')
+CML_AMBTEMP_=VALCHR(STRSUB(CML_STR1_,1,CML_BLKLOC_-1))
+! clear up
+CML_RUNLINES_=
+!
+! read TFCrun.dat
+! get line number for each section
+*SREAD,CML_TFCLINES_,TFCrun.dat
+*GET,CML_TFCLINETOT_,PARM,CML_TFCLINES_,DIM,2
+CML_J1_=$CML_J2_=$CML_J3_=$CML_J4_=$CML_J5_=$CML_J6_=$CML_J7_=$CML_J8_=
+*DO,CML_I_,1,CML_TFCLINETOT_
+	CML_STR1_=STRCOMP(CML_TFCLINES_(1,CML_I_))
+	*IF,CML_STR1_,EQ,'ansysmodel',THEN
+		CML_J1_=CML_I_+3
+	*ELSEIF,CML_STR1_,EQ,'heater'
+            CML_J2_=CML_I_+3
+	*ELSEIF,CML_STR1_,EQ,'mapping'
+            CML_J3_=CML_I_+3
+	*ELSEIF, CML_STR1_, EQ, 'constraints'
+		CML_J4_=CML_I_+3
+	*ELSEIF, CML_STR1_, EQ, 'loads'
+		CML_J5_=CML_I_+3
+	*ELSEIF, CML_STR1_, EQ, 'convergence'
+		CML_J6_=CML_I_+3
+	*ELSEIF, CML_STR1_, EQ, 'cooling'
+		CML_J7_=CML_I_+3
+	*ELSEIF, CML_STR1_, EQ, 'thermalmodel'
+		CML_J8_=CML_I_+3
+	*ENDIF
+*ENDDO
+!
+! check if these line number exist (not if the section is missing), J1 has been verified in SolFHMag.mac
+*GET, CML_IF_EXIST_, PARM, CML_J2_, TYPE
+*IF, CML_IF_EXIST_, EQ, -1, THEN
+	*MSG, FATAL, 'missing heater ', 'information in TFCrun.dat!'	
+%C %C
+*ENDIF
+*GET, CML_IF_EXIST_, PARM, CML_J3_, TYPE
+*IF, CML_IF_EXIST_, EQ, -1, THEN
+	*MSG, FATAL, 'missing mapping ', 'information in TFCrun.dat!'	
+%C %C
+*ENDIF
+*GET, CML_IF_EXIST_, PARM, CML_J4_, TYPE
+*IF, CML_IF_EXIST_, EQ, -1, THEN
+	*MSG, FATAL, 'missing constraints ', 'information in TFCrun.dat!'	
+%C %C
+*ENDIF
+*GET, CML_IF_EXIST_, PARM, CML_J5_, TYPE
+*IF, CML_IF_EXIST_, EQ, -1, THEN
+	*MSG, FATAL, 'missing loads ', 'information in TFCrun.dat!'	
+%C %C
+*ENDIF
+*GET, CML_IF_EXIST_, PARM, CML_J7_, TYPE
+*IF, CML_IF_EXIST_, EQ, -1, THEN
+	*MSG, FATAL, 'missing cooling ', 'information in TFCrun.dat!'	
+%C %C
+*ENDIF
+*GET, CML_IF_EXIST_, PARM, CML_J8_, TYPE
+*IF, CML_IF_EXIST_, EQ, -1, THEN
+	*MSG, FATAL, 'missing thermal ', 'model information', ' in TFCrun.dat!'	
+%C %C %C
+*ENDIF
+! get unit id
+CML_STR1_=STRLEFT(CML_TFCLINES_(1,CML_J1_))
+CML_BLKLOC_=STRPOS(CML_STR1_,' ')
+CML_UNITSYSID_=VALCHR(STRSUB(CML_STR1_,1,CML_BLKLOC_-1))
+! get orientation id
+CML_STR1_=STRSUB(CML_STR1_,CML_BLKLOC_,STRLENG(CML_STR1_)-CML_BLKLOC_+1)
+CML_ORTID_=VALCHR(CML_STR1_)
+CML_J1_=CML_J1_+2
+! get pad1 area number
+CML_STR1_=STRLEFT(CML_TFCLINES_(1,CML_J1_))
+CML_BLKLOC_=STRPOS(CML_STR1_,' ')
+CML_PAD1_=VALCHR(STRSUB(CML_STR1_,1,CML_BLKLOC_-1))
+! get pad2 area number
+CML_STR1_=STRSUB(CML_STR1_,CML_BLKLOC_,STRLENG(CML_STR1_)-CML_BLKLOC_+1)
+CML_PAD2_=VALCHR(CML_STR1_)
+! move the file pointer
+CML_J1_=CML_J1_+2
+! get the reference temp. for materials
+CML_STR1_=STRLEFT(CML_TFCLINES_(1,CML_J1_))
+CML_REFTEMP_=VALCHR(CML_STR1_)
+!!!!!!!!!!!!! CML_POWER_ is now redundant !!!!!!!!!!!!!!!!!!!!!!
+! get heating power
+CML_STR1_=STRLEFT(CML_TFCLINES_(1,CML_J2_))
+CML_BLKLOC_=STRPOS(CML_STR1_,' ')
+CML_POWER_=VALCHR(STRSUB(CML_STR1_,1,CML_BLKLOC_-1))
+!!!!!!!!!!!!! CML_POWER_ is now redundant !!!!!!!!!!!!!!!!!!!!!!
+! get heater resistance
+CML_STR1_=STRSUB(CML_STR1_,CML_BLKLOC_,STRLENG(CML_STR1_)-CML_BLKLOC_+1)
+CML_RESISTANCE_=VALCHR(CML_STR1_)
+! get xmin
+CML_STR1_=STRLEFT(CML_TFCLINES_(1,CML_J3_))
+CML_BLKLOC_=STRPOS(CML_STR1_,' ')
+CML_XMIN_=VALCHR(STRSUB(CML_STR1_,1,CML_BLKLOC_-1))
+! get xmax
+CML_STR1_=STRSUB(CML_STR1_,CML_BLKLOC_,STRLENG(CML_STR1_)-CML_BLKLOC_+1)
+CML_XMAX_=VALCHR(CML_STR1_)
+CML_J3_=CML_J3_+2
+! get ymin
+CML_STR1_=STRLEFT(CML_TFCLINES_(1,CML_J3_))
+CML_BLKLOC_=STRPOS(CML_STR1_,' ')
+CML_YMIN_=VALCHR(STRSUB(CML_STR1_,1,CML_BLKLOC_-1))
+! get ymax
+CML_STR1_=STRSUB(CML_STR1_,CML_BLKLOC_,STRLENG(CML_STR1_)-CML_BLKLOC_+1)
+CML_YMAX_=VALCHR(CML_STR1_)
+CML_J3_=CML_J3_+2
+! get nx for displacement mapping
+CML_STR1_=STRLEFT(CML_TFCLINES_(1,CML_J3_))
+CML_BLKLOC_=STRPOS(CML_STR1_,' ')
+CML_MAPLENPT_=VALCHR(STRSUB(CML_STR1_,1,CML_BLKLOC_-1))
+! get ny for displacement mapping
+CML_STR1_=STRSUB(CML_STR1_,CML_BLKLOC_,STRLENG(CML_STR1_)-CML_BLKLOC_+1)
+CML_MAPWIDPT_=VALCHR(CML_STR1_)
+! get back cooling
+CML_STR1_=STRLEFT(CML_TFCLINES_(1,CML_J7_))
+CML_BLKLOC_=STRPOS(CML_STR1_,' ')
+CML_BACKCOOLING_ = STRSUB(CML_STR1_,1,CML_BLKLOC_-1)
+CML_BACKCOOLING_ = VALCHR(CML_BACKCOOLING_)
+! get side cooling
+CML_STR1_=STRSUB(CML_STR1_,CML_BLKLOC_,STRLENG(CML_STR1_)-CML_BLKLOC_+1)
+CML_SIDECOOLING_=VALCHR(CML_STR1_)
+! get if apply back-fixed constraints
+CML_STR1_=STRLEFT(CML_TFCLINES_(1,CML_J4_))
+CML_IFBACKFIXED_=VALCHR(CML_STR1_)
+! get if pressure applied
+CML_STR1_=STRLEFT(CML_TFCLINES_(1,CML_J5_))
+CML_IFPRES_=VALCHR(CML_STR1_)
+! get thermal model type (currently not used)
+CML_STR1_=STRLEFT(CML_TFCLINES_(1,CML_J8_))
+CML_BLKLOC_=STRPOS(CML_STR1_,' ')
+CML_MODELTYP_=VALCHR(STRSUB(CML_STR1_,1,CML_BLKLOC_-1))
+! get viscous heating options
+!CML_STR1_=STRSUB(CML_STR1_,CML_BLKLOC_,STRLENG(CML_STR1_)-CML_BLKLOC_+1)
+!CML_VISHEAT_=VALCHR(CML_STR1_)
+! clear up
+CML_TFCLINES_=
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!Set the reference temperature of material
+*USE, ModRefTemp.mac, CML_REFTEMP_
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!we only use the global cartesian system here
+CSYS,0
+ALLSEL
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!define parameters for model dimensions
+*IF,CML_ORTID_,EQ,1,THEN
+	CML_ORTTYPE_=1
+	CML_UPDOWN_=1
+	CML_FRONTBACK_=1
+	CML_LENLABLE_='X'
+	CML_WIDLABLE_='Y'
+	CML_HEILABLE_='Z'
+	CML_HEIDISPLABLE_='UZ'
+*ELSEIF,CML_ORTID_,EQ,2,THEN
+	CML_ORTTYPE_=2
+	CML_UPDOWN_=2
+*ELSEIF,CML_ORTID_,EQ,3,THEN
+	CML_ORTTYPE_=2
+	CML_UPDOWN_=1
+*ELSEIF,CML_ORTID_,EQ,4,THEN
+	CML_ORTTYPE_=1
+	CML_UPDOWN_=2
+*ELSEIF,CML_ORTID_,EQ,5,THEN
+	CML_ORTTYPE_=4
+	CML_UPDOWN_=1
+*ELSEIF,CML_ORTID_,EQ,6,THEN
+	CML_ORTTYPE_=3
+	CML_UPDOWN_=2
+*ELSEIF,CML_ORTID_,EQ,7,THEN
+	CML_ORTTYPE_=3
+	CML_UPDOWN_=1
+*ELSEIF,CML_ORTID_,EQ,8,THEN
+	CML_ORTTYPE_=4
+	CML_UPDOWN_=2
+*ELSEIF,CML_ORTID_,EQ,9,THEN
+	CML_ORTTYPE_=1
+	CML_UPDOWN_=1
+*ELSEIF,CML_ORTID_,EQ,10,THEN
+	CML_ORTTYPE_=2
+	CML_UPDOWN_=2
+*ELSEIF,CML_ORTID_,EQ,11,THEN
+	CML_ORTTYPE_=2
+	CML_UPDOWN_=1
+*ELSEIF,CML_ORTID_,EQ,12,THEN
+	CML_ORTTYPE_=1
+	CML_UPDOWN_=2
+*ELSEIF,CML_ORTID_,EQ,13,THEN
+	CML_ORTTYPE_=4
+	CML_UPDOWN_=1
+*ELSEIF,CML_ORTID_,EQ,14,THEN
+	CML_ORTTYPE_=3
+	CML_UPDOWN_=2
+*ELSEIF,CML_ORTID_,EQ,15,THEN
+	CML_ORTTYPE_=3
+	CML_UPDOWN_=1
+*ELSEIF,CML_ORTID_,EQ,16,THEN
+	CML_ORTTYPE_=4
+	CML_UPDOWN_=2
+*ELSEIF,CML_ORTID_,EQ,17,THEN
+	CML_ORTTYPE_=1
+	CML_UPDOWN_=1
+*ELSEIF,CML_ORTID_,EQ,18,THEN
+	CML_ORTTYPE_=2
+	CML_UPDOWN_=2
+	CML_FRONTBACK_=1
+	CML_LENLABLE_='Z'
+	CML_WIDLABLE_='X'
+	CML_HEILABLE_='Y'
+	CML_HEIDISPLABLE_='UY'
+*ELSEIF,CML_ORTID_,EQ,19,THEN
+	CML_ORTTYPE_=2
+	CML_UPDOWN_=1
+*ELSEIF,CML_ORTID_,EQ,20,THEN
+	CML_ORTTYPE_=1
+	CML_UPDOWN_=2
+*ELSEIF,CML_ORTID_,EQ,21,THEN
+	CML_ORTTYPE_=4
+	CML_UPDOWN_=1
+*ELSEIF,CML_ORTID_,EQ,22,THEN
+	CML_ORTTYPE_=3
+	CML_UPDOWN_=2
+*ELSEIF,CML_ORTID_,EQ,23,THEN
+	CML_ORTTYPE_=3
+	CML_UPDOWN_=1
+*ELSEIF,CML_ORTID_,EQ,24,THEN
+	CML_ORTTYPE_=4
+	CML_UPDOWN_=2
+*ENDIF
+! get total of nodes, and a mask for valid nodes
+*GET,CML_NODETOT_,NODE,0,NUM,MAX
+*DIM,CML_COORD_,ARRAY,CML_NODETOT_,3 
+*DIM,CML_ALLMASK_,ARRAY,CML_NODETOT_
+*VGET,CML_ALLMASK_,NODE,ALL,NSEL
+*VMASK,CML_ALLMASK_
+*VGET,CML_COORD_(1,1),NODE,,LOC,CML_LENLABLE_ 
+*VMASK,CML_ALLMASK_
+*VGET,CML_COORD_(1,2),NODE,,LOC,CML_WIDLABLE_  
+*VMASK,CML_ALLMASK_     
+*VGET,CML_COORD_(1,3),NODE,,LOC,CML_HEILABLE_ 
+! now find out the location of slider ABS and back
+*IF,CML_UPDOWN_,EQ,1,THEN
+	*VMASK,CML_ALLMASK_
+	*VSCFUN,CML_ABSLOC_,MAX,CML_COORD_(1,3)
+	*VMASK,CML_ALLMASK_
+	*VSCFUN,CML_TOPLOC_,MIN,CML_COORD_(1,3)
+*ELSEIF,CML_UPDOWN_,EQ,2,THEN
+	*VMASK,CML_ALLMASK_
+	*VSCFUN,CML_ABSLOC_,MIN,CML_COORD_(1,3)
+	*VMASK,CML_ALLMASK_
+	*VSCFUN,CML_TOPLOC_,MAX,CML_COORD_(1,3)
+*ENDIF
+! now find out the location of trainling edge and leading edge
+*IF,CML_FRONTBACK_,EQ,1,THEN
+	*VMASK,CML_ALLMASK_
+	*VSCFUN,CML_TELOC_,MAX,CML_COORD_(1,1)
+	*VMASK,CML_ALLMASK_
+	*VSCFUN,CML_LELOC_,MIN,CML_COORD_(1,1)
+	CML_LENMAX_=CML_TELOC_
+	CML_LENMIN_=CML_LELOC_
+*ELSEIF,CML_FRONTBACK_,EQ,2,THEN
+	*VMASK,CML_ALLMASK_
+	*VSCFUN,CML_TELOC_,MIN,CML_COORD_(1,1)
+	*VMASK,CML_ALLMASK_
+	*VSCFUN,CML_LELOC_,MAX,CML_COORD_(1,1)
+	CML_LENMIN_=CML_TELOC_
+	CML_LENMAX_=CML_LELOC_
+*ENDIF
+! now find out the minimum and maximum in width direction(we don't specify inner and outer edges)
+*VMASK,CML_ALLMASK_
+*VSCFUN,CML_WIDMIN_,MIN,CML_COORD_(1,2)
+*VMASK,CML_ALLMASK_
+*VSCFUN,CML_WIDMAX_,MAX,CML_COORD_(1,2)
+! compute length and width
+CML_LEN_=CML_LENMAX_-CML_LENMIN_
+CML_WID_=CML_WIDMAX_-CML_WIDMIN_
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!we need to define tolerance here, in case not able to select nodes at 0, set it to be 10nm
+*IF,CML_UNITSYSID_,EQ,1,THEN
+	SELTOL,1E-8
+*ELSEIF,CML_UNITSYSID_,EQ,2,THEN
+	SELTOL,1E-2
+*ENDIF
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! we find out the area for mapping here
+*IF,CML_ORTTYPE_,EQ,1,THEN
+		CML_MAPLENMIN_=CML_XMIN_*CML_LEN_+(CML_LENMAX_-CML_LEN_)
+		CML_MAPLENMAX_=CML_XMAX_*CML_LEN_+(CML_LENMAX_-CML_LEN_)
+		CML_MAPWIDMIN_=CML_YMIN_*CML_WID_+(CML_WIDMAX_-CML_WID_)
+		CML_MAPWIDMAX_=CML_YMAX_*CML_WID_+(CML_WIDMAX_-CML_WID_)
+*ELSEIF,CML_ORTTYPE_,EQ,2,THEN
+		CML_MAPLENMIN_=CML_XMIN_*CML_LEN_+(CML_LENMAX_-CML_LEN_)
+		CML_MAPLENMAX_=CML_XMAX_*CML_LEN_+(CML_LENMAX_-CML_LEN_)
+		CML_MAPWIDMIN_=-CML_YMAX_*CML_WID_+CML_WIDMAX_
+		CML_MAPWIDMAX_=-CML_YMIN_*CML_WID_+CML_WIDMAX_
+*ELSEIF,CML_ORTTYPE_,EQ,3,THEN
+		CML_MAPLENMIN_=-CML_XMAX_*CML_LEN_+CML_LENMAX_
+		CML_MAPLENMAX_=-CML_XMIN_*CML_LEN_+CML_LENMAX_
+		CML_MAPWIDMIN_=CML_YMIN_*CML_WID_+(CML_WIDMAX_-CML_WID_)
+		CML_MAPWIDMAX_=CML_YMAX_*CML_WID_+(CML_WIDMAX_-CML_WID_)
+*ELSEIF,CML_ORTTYPE_,EQ,4,THEN
+		CML_MAPLENMIN_=-CML_XMAX_*CML_LEN_+CML_LENMAX_
+		CML_MAPLENMAX_=-CML_XMIN_*CML_LEN_+CML_LENMAX_
+		CML_MAPWIDMIN_=-CML_YMAX_*CML_WID_+CML_WIDMAX_
+		CML_MAPWIDMAX_=-CML_YMIN_*CML_WID_+CML_WIDMAX_
+*ENDIF
+! clean up
+CML_COORD_=$CML_ALLMASK_=		
+!!!!!!!!!!!!!!!!!!!! Sid read TFC Power !!!!!!!!!!!!!!!!!!!!!!!!
+*SREAD,MATLABOUT,MOAI.txt
+TFC_s=MATLABOUT(1,1,1)
+TFCP_final=VALCHR(TFC_s)
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!we start the electric analysis here by modify DOF to be VOLT
+*USE,SwitchElemKoptEh.mac,1
+! solve
+ALLSEL
+FINISH  
+/SOLU
+ANTYPE,STATIC,NEW          !we start a new steady state analysis now
+! apply voltage
+DA,CML_PAD1_,VOLT,(TFCP_final*1E-3*CML_RESISTANCE_)**0.5  ! unit in both systems is V
+DA,CML_PAD2_,VOLT,0
+ALLSEL
+SOLVE 
+*IF, _STATUS, EQ, 3, THEN
+	*MSG, FATAL, 'Error occurs in ', 'electric analysis!', 'Program will exit!'
+%C %C %C
+*ENDIF  
+FINISH
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!we start the thermal analysis by modifying DOF to be TEMP
+ALLSEL
+/PREP7
+*USE,SwitchElemKoptEh.mac,2
+!!!!!!!!!!!!!!!!!Sid get surface nodes !!!!!!!!!!!!!!!!!!!!!!!!!
+*GET,sliderthickness, NODE, 0, MXLOC,Z
+nsel,s,loc,z,sliderthickness,sliderthickness+0.01
+ET,2,SURF152
+KEYOPT,2,8,1 ! 1: For HF
+type,2
+ESURF,0
+NUMCMP,ELEM 
+esel,s,type,,2
+*Get,surf_elenum,ELEM,0,count
+
+*DIM,ele_num,,surf_elenum
+
+*DIM,ele_node_temp, ,surf_elenum,4
+ESEL,S,TYPE, ,2
+*get,cur_ele,ELEM,0,NUM,min
+
+*do,ww,1,surf_elenum,1
+	*get,nodenum_1,ELEM,cur_ele,NODE,1
+	*get,nodenum_2,ELEM,cur_ele,NODE,2
+	*get,nodenum_3,ELEM,cur_ele,NODE,3
+	ele_node_temp(ww,1)=cur_ele
+	ele_node_temp(ww,2)=nodenum_1
+	ele_node_temp(ww,3)=nodenum_2
+	ele_node_temp(ww,4)=nodenum_3
+	ele_num(ww)=cur_ele
+	*get,cur_ele,ELEM,cur_ele,NXTH
+*enddo
+
+*DIM,ele_CONV_in,,surf_elenum,3
+*CFOPEN,Convection_coef_initial_BC,dat
+*Vread,ele_CONV_in(1,1),Convection_coef_initial_BC,dat,,JIK,3,surf_elenum
+(F15.5,' ',F15.5,' ',F15.5)
+*CFCLOS
+
+*DIM,slider_temp_initial,,surf_elenum,3
+*CFOPEN,slider_temp_initial,dat
+*Vread,slider_temp_initial(1,1),slider_temp_initial,dat,,JIK,3,surf_elenum 
+(F15.11,' ',F15.11,' ',F15.11)
+*CFCLOS
+
+*DIM,QF,,surf_elenum,3
+*CFOPEN,QF_ANSYS,dat
+*Vread,QF(1,1),QF_ANSYS,dat,,JIK,3,surf_elenum
+(F15.3,' ',F15.3,' ',F15.3)
+*CFCLOS
+
+*DIM,disk_temp_initial,,surf_elenum,3
+*CFOPEN,disk_temp_initial,dat
+*Vread,disk_temp_initial(1,1),disk_temp_initial,dat,,JIK,3,surf_elenum 
+(F15.11,' ',F15.11,' ',F15.11)
+*CFCLOS
+
+*DIM,vander_press,,surf_elenum,3
+*CFOPEN,vdW_ANSYS,dat
+*Vread,vander_press(1,1),vdW_ANSYS,dat,,JIK,3,surf_elenum 
+(F15.5,' ',F15.5,' ',F15.5)
+*CFCLOS
+
+*DIM,air_press,,surf_elenum,3
+*CFOPEN,Press_ANSYS,dat
+*Vread,air_press(1,1),Press_ANSYS,dat,,JIK,3,surf_elenum 
+(F15.5,' ',F15.5,' ',F15.5)
+*CFCLOS
+
+allsel,all
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! solve temperature
+ALLSEL 
+FINISH
+/SOLU
+ANTYPE,STATIC,NEW          !we start a new steady state analysis now
+!the first load is the heat generation from last analysis
+LDREAD,HGEN,,,,,,rth
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! OLD !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!! ! read filmcoefficient
+!!! *DEL,CML_FILMCOEFTABLE,,nopr
+!!! *DIM,CML_FILMCOEFTABLE,TABLE,CML_CMLGRIDNY_,CML_CMLGRIDNX_,, CML_WIDLABLE_,CML_LENLABLE_
+!!! *TREAD,CML_FILMCOEFTABLE,FilmCoefficient01.dat
+!!! ! apply conduction on ABS
+!!! NSEL,S,LOC,CML_HEILABLE_,CML_ABSLOC_ 
+!!! SF,,CONV,%CML_FILMCOEFTABLE%,CML_AMBTEMP_
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! NEW !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!! Select Front External Areas !!!!!!!!!!!!!
+*DIM,Q,,surf_elenum,3
+*do,KK,1,surf_elenum,1
+	dT1 = slider_temp_initial(KK,1)-disk_temp_initial(KK,1)
+	dT2 = slider_temp_initial(KK,2)-disk_temp_initial(KK,2)
+	dT3 = slider_temp_initial(KK,3)-disk_temp_initial(KK,3)
+
+	!! This is a precaution, need to verify if this is true
+	*if,dT1,LT,0.1,then
+		dT1 = 0.1
+	*endif
+	*if,dT2,LT,0.1,then
+		dT2 = 0.1
+	*endif
+	*if,dT3,LT,0.1,then
+		dT3 = 0.1
+	*endif
+	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+	Q(KK,1) = -ele_CONV_in(KK,1)*(dT1) + QF(KK,1)
+
+	Q(KK,2) = -ele_CONV_in(KK,2)*(dT2) + QF(KK,2)
+
+	Q(KK,3) = -ele_CONV_in(KK,3)*(dT3) + QF(KK,3)
+
+	!! This is a precaution, need to verify if this is true
+	*if,Q(KK,1),LT,-200000000,then
+		Q(KK,1) = -200000000
+	*endif
+	*if,Q(KK,2),LT,-200000000,then
+		Q(KK,2) = -200000000
+	*endif
+	*if,Q(KK,3),LT,-200000000,then
+		Q(KK,3) = -200000000
+	*endif
+     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+	SFE,ele_num(KK),1,HFLUX,,Q(KK,1),Q(KK,2),Q(KK,3),Q(KK,3)  
+*enddo
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+! apply convection on other 5 sides
+NSEL,S,LOC,CML_HEILABLE_,CML_TOPLOC_
+SF,,CONV,CML_BACKCOOLING_,CML_AMBTEMP_
+NSEL,S,LOC,CML_WIDLABLE_,CML_WIDMAX_
+SF,,CONV,CML_SIDECOOLING_,CML_AMBTEMP_
+NSEL,S,LOC,CML_WIDLABLE_,CML_WIDMIN_
+SF,,CONV,CML_SIDECOOLING_,CML_AMBTEMP_
+NSEL,S,LOC,CML_LENLABLE_,CML_LENMAX_
+SF,,CONV,CML_SIDECOOLING_,CML_AMBTEMP_
+NSEL,S,LOC,CML_LENLABLE_,CML_LENMIN_
+SF,,CONV,CML_SIDECOOLING_,CML_AMBTEMP_
+ALLSEL
+SOLVE
+! if error occurs during solving, exit
+*IF, _STATUS, EQ, 3, THEN
+	*MSG, FATAL, 'Error occurs in ', 'thermal analysis!', 'Program will exit!'
+%C %C %C
+*ENDIF  
+FINISH
+!!!!!!!!!!!!!!!!!!!!! Sid save TDS temp !!!!!!!!!!!!!!!!!!!!!!!!
+*DIM,TDStemp,,120
+*CFOPEN,TDStemp,dat
+*Vread,TDStemp(1),TDStemp,dat
+(F15.11)
+*CFCLOS
+
+error = 0.5
+NSEL,S,LOC,X,825.1-error,825.15+error
+NSEL,R,LOC,Y,349.25,350.75
+NSEL,R,LOC,Z,229.85,230
+*get,node_num,NODE,0,NUM,MIN
+*get,TDStemp(AR42),NODE,node_num,TEMP
+
+ALLSEL,ALL
+
+*CFOPEN,TDStemp,dat
+*VWRITE,TDStemp(1),
+(F15.11,' ',F15.11)
+*CFCLOS
+
+*DIM,slider_temp, ,surf_elenum,3
+*do,KK,1,surf_elenum,1
+	*get,node1_temp,NODE,ele_node_temp(KK,2),TEMP
+	slider_temp(KK,1) = node1_temp
+	*get,node2_temp,NODE,ele_node_temp(KK,3),TEMP
+	slider_temp(KK,2) = node2_temp
+	*get,node3_temp,NODE,ele_node_temp(KK,4),TEMP
+	slider_temp(KK,3) = node3_temp
+*enddo
+
+*CFOPEN,slider_temp,dat
+*VWRITE,slider_temp(1,1),slider_temp(1,2),slider_temp(1,3)
+(F15.11,' ',F15.11,' ',F15.11)
+*CFCLOS
+
+*CFOPEN,Q,dat
+*VWRITE,Q(1,1),Q(1,2),Q(1,3)
+(F15.3,' ',F15.3,' ',F15.3)
+*CFCLOS
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! do not delete this variable so that the saved .db could display it.
+! CML_FILMCOEFTABLE=
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!here we start structural analysis
+ALLSEL
+/PREP7 
+MP, EX, 5, 1E5          !Siddhesh
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! NEW !!!!!!!!!!!!!!!!!!!!!!!!!!
+esel,s,type,,2
+edele,all
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! NEWER !!!!!!!!!!!!!!!!!!!!!!!!!!
+allsel,all
+
+*GET,sliderthickness, NODE, 0, MXLOC,Z
+nsel,s,loc,z,sliderthickness,sliderthickness+0.01
+ET,3,SURF154
+type,3
+ESURF,0
+NUMCMP,ELEM
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! modify DOF to ux,uy,uz 
+*USE,SwitchElemKoptEh.mac,3
+! start solving for displacement
+ALLSEL  
+FINISH  
+/SOLU
+ANTYPE,STATIC,NEW
+! read temperature from last analysis
+TREF,CML_AMBTEMP_ 
+LDREAD,TEMP,,,,,,rth
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! OLD !!!!!!!!!!!!!!!!!!!!!!!!!!
+! if pressure option is on, apply pressure
+!! *IF,CML_IFPRES_,EQ,1,THEN
+!!	*DEL,CML_PRESTABLE,,nopr
+!!	*DIM,CML_PRESTABLE,TABLE,CML_CMLGRIDNY_,CML_CMLGRIDNX_,, CML_WIDLABLE_,CML_LENLABLE_
+!!	*TREAD,CML_PRESTABLE,PressLoad01.dat
+!!	NSEL,S,LOC,CML_HEILABLE_,CML_ABSLOC_
+!!	SF,,PRES,%CML_PRESTABLE%
+!! *ENDIF
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! NEW !!!!!!!!!!!!!!!!!!!!!!!!!!
+*do,KK,1,surf_elenum,1
+SFE,ele_num(KK),1,PRES,0,-vander_press(KK,1)+air_press(KK,1),-vander_press(KK,2) + air_press(KK,2),-vander_press(KK,3) + air_press(KK,3),-vander_press(KK,3) + air_press(KK,3)
+*enddo
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! if constraint option is on, apply constraints
+*IF,CML_IFBACKFIXED_,EQ,1,THEN
+! fix back of slider in z
+	NSEL,S,LOC,CML_HEILABLE_,CML_TOPLOC_
+	D,ALL,CML_HEIDISPLABLE_,0
+! fix two corners at leading edge
+	NSEL,S,LOC,CML_HEILABLE_,CML_TOPLOC_
+	NSEL,R,LOC,CML_LENLABLE_,CML_LELOC_
+	NSEL,R,LOC,CML_WIDLABLE_,CML_WIDMIN_
+	D,ALL,ALL,0
+	NSEL,S,LOC,CML_HEILABLE_,CML_TOPLOC_
+	NSEL,R,LOC,CML_LENLABLE_,CML_LELOC_
+	NSEL,R,LOC,CML_WIDLABLE_,CML_WIDMAX_
+	D,ALL,ALL,0
+*ENDIF
+ALLSEL
+SOLVE 
+! if error occurs during solving, exit
+*IF, _STATUS, EQ, 3, THEN
+	*MSG, FATAL, 'Error occurs in ', 'structural analysis!', 'Program will exit!'
+%C %C %C
+*ENDIF  
+FINISH
+!!!!!!!!!!!!!!!!!! Sid save TFC protrusion !!!!!!!!!!!!!!!!!!!!!
+*DIM,TFCprotrusion,,120
+*CFOPEN,TFCprotrusion,dat
+*Vread,TFCprotrusion(1),TFCprotrusion,dat
+(F15.11)
+*CFCLOS
+
+error = 0.5
+NSEL,S,LOC,X,825.1-error,825.15+error
+NSEL,R,LOC,Y,349.25,350.75
+NSEL,R,LOC,Z,229.85,230
+*get,node_num,NODE,0,NUM,MIN
+*get,TFCprotrusion(AR42),NODE,node_num,U,Z
+
+ALLSEL,ALL
+
+*CFOPEN,TFCprotrusion,dat
+*VWRITE,TFCprotrusion(1),
+(F15.11,' ',F15.11)
+*CFCLOS
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! 
+! keep this variable so that the saved .db could display it.
+!CML_PRESTABLE=
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! here we start data manipulation for Usergeom01.dat
+! get total of nodes, and a mask for valid nodes
+ALLSEL
+*GET,CML_NODETOT_,NODE,0,NUM,MAX
+*DIM,CML_COORD_,ARRAY,CML_NODETOT_,3 
+*DIM,CML_ALLMASK_,ARRAY,CML_NODETOT_
+*VGET,CML_ALLMASK_,NODE,ALL,NSEL
+*VMASK,CML_ALLMASK_
+*VGET,CML_COORD_(1,1),NODE,,LOC,CML_LENLABLE_ 
+*VMASK,CML_ALLMASK_
+*VGET,CML_COORD_(1,2),NODE,,LOC,CML_WIDLABLE_  
+*VMASK,CML_ALLMASK_     
+*VGET,CML_COORD_(1,3),NODE,,LOC,CML_HEILABLE_ 
+! save uz at all nodes
+*DIM,CML_DISPSOL_,ARRAY,CML_NODETOT_
+*VMASK,CML_ALLMASK_
+*VGET,CML_DISPSOL_,NODE,ALL,U,CML_HEILABLE_
+! define a ABS mask
+*DIM,CML_ABSMASK_,ARRAY,CML_NODETOT_
+NSEL,S,LOC,CML_HEILABLE_,CML_ABSLOC_
+*VGET,CML_ABSMASK_,NODE,ALL,NSEL
+*GET,CML_ABSNODETOT_,NODE,,COUNT
+! define two arrays for abs nodes, one for coordinates, one for solution
+*DIM,CML_COORD2_,ARRAY,CML_ABSNODETOT_,3
+*DIM,CML_DISPSOL2_,ARRAY,CML_ABSNODETOT_,1
+! first compress the original coordinate array
+*VMASK,CML_ABSMASK_
+*VFUN,CML_COORD_(1,1),COMP,CML_COORD_(1,1)
+*VMASK,CML_ABSMASK_
+*VFUN,CML_COORD_(1,2),COMP,CML_COORD_(1,2)
+*VMASK,CML_ABSMASK_
+*VFUN,CML_COORD_(1,3),COMP,CML_COORD_(1,3)
+! then compress the displacement array
+*VMASK,CML_ABSMASK_
+*VFUN,CML_DISPSOL_,COMP,CML_DISPSOL_
+!now we can copy them to the abs array
+*MFUN,CML_COORD2_(1,1),COPY,CML_COORD_(1,1)
+*VFUN,CML_DISPSOL2_,COPY,CML_DISPSOL_
+!for fast 2-d mapping, we empty the 3rd coordinate
+*VFILL,CML_COORD2_(1,3),RAMP,0,0 
+! now we need to generate an array storing the mapping coordinates
+CML_MAPPT_=CML_MAPLENPT_*CML_MAPWIDPT_   !calculate dimension of this array
+CML_MAPLENINT_=(CML_MAPLENMAX_-CML_MAPLENMIN_)/(CML_MAPLENPT_-1)
+CML_MAPWIDINT_=(CML_MAPWIDMAX_-CML_MAPWIDMIN_)/(CML_MAPWIDPT_-1)
+! define new arrays of target map
+*DIM,CML_MAPCOORD_,ARRAY,CML_MAPPT_,3
+*DIM,CML_MAPDISPSOL_,ARRAY,CML_MAPPT_,1
+! now start filling out the coordinates, use vector operations to accelerate
+CML_I_=1
+*IF,CML_ORTTYPE_,EQ,1,THEN
+	*DO,CML_J_,1,CML_MAPLENPT_,1
+		*VFILL,CML_MAPCOORD_(CML_I_:CML_I_+CML_MAPWIDPT_-1,1),RAMP,CML_MAPLENMIN_+(CML_J_-1)*CML_MAPLENINT_,0
+		*VFILL,CML_MAPCOORD_(CML_I_:CML_I_+CML_MAPWIDPT_-1,2),RAMP,CML_MAPWIDMIN_,CML_MAPWIDINT_
+		CML_I_=CML_I_+CML_MAPWIDPT_
+	*ENDDO
+*ENDIF
+!*IF,CML_ORTTYPE_,EQ,1,THEN
+!	*DO,CML_J_,1,CML_MAPLENPT_,1
+!		*DO,CML_K_,1,CML_MAPWIDPT_,1
+!			CML_MAPCOORD_(CML_I_,1)=CML_MAPLENMIN_+(CML_J_-1)*CML_MAPLENINT_
+!			*IF,CML_MAPCOORD_(CML_I_,1),GT,CML_MAPLENMAX_,THEN
+!				CML_MAPCOORD_(CML_I_,1)=CML_MAPLENMAX_
+!			*ENDIF
+!			CML_MAPCOORD_(CML_I_,2)=CML_MAPWIDMIN_+(CML_K_-1)*CML_MAPWIDINT_
+!			*IF,CML_MAPCOORD_(CML_I_,2),GT,CML_MAPWIDMAX_,THEN
+!				CML_MAPCOORD_(CML_I,2)=CML_MAPWIDMAX_
+!			*ENDIF
+!			CML_MAPCOORD_(CML_I_,3)=0
+!			CML_I_=CML_I_+1
+!		*ENDDO
+!	*ENDDO
+!*ELSEIF,CML_ORTTYPE_,EQ,2,THEN
+!	*DO,CML_J_,1,CML_MAPLENPT_,1
+!		*DO,CML_K_,CML_MAPWIDPT_,1,-1
+!			CML_MAPCOORD_(CML_I_,1)=CML_MAPLENMIN_+(CML_J_-1)*CML_MAPLENINT_
+!			*IF,CML_MAPCOORD_(CML_I_,1),GT,CML_MAPLENMAX_,THEN
+!				CML_MAPCOORD_(CML_I_,1)=CML_MAPLENMAX_
+!			*ENDIF
+!			CML_MAPCOORD_(CML_I_,2)=CML_MAPWIDMIN_+(CML_K_-1)*CML_MAPWIDINT_
+!			*IF,CML_MAPCOORD_(CML_I_,2),GT,CML_MAPWIDMAX_,THEN
+!				CML_MAPCOORD_(CML_I,2)=CML_MAPWIDMAX_
+!			*ENDIF
+!			CML_MAPCOORD_(CML_I_,3)=0
+!			CML_I_=CML_I_+1
+!		*ENDDO
+!	*ENDDO
+!*ELSEIF,CML_ORTTYPE_,EQ,3,THEN
+!	*DO,CML_J_,CML_MAPLENPT_,1,-1
+!		*DO,CML_K_,1,CML_MAPWIDPT_,1
+!			CML_MAPCOORD_(CML_I_,1)=CML_MAPLENMIN_+(CML_J_-1)*CML_MAPLENINT_
+!			*IF,CML_MAPCOORD_(CML_I_,1),GT,CML_MAPLENMAX_,THEN
+!				CML_MAPCOORD_(CML_I_,1)=CML_MAPLENMAX_
+!			*ENDIF
+!			CML_MAPCOORD_(CML_I_,2)=CML_MAPWIDMIN_+(CML_K_-1)*CML_MAPWIDINT_
+!			*IF,CML_MAPCOORD_(CML_I_,2),GT,CML_MAPWIDMAX_,THEN
+!				CML_MAPCOORD_(CML_I,2)=CML_MAPWIDMAX_
+!			*ENDIF
+!			CML_MAPCOORD_(CML_I_,3)=0
+!			CML_I_=CML_I_+1
+!		*ENDDO
+!	*ENDDO
+!*ELSEIF,CML_ORTTYPE_,EQ,4,THEN
+!	*DO,CML_J_,CML_MAPLENPT_,1,-1
+!		*DO,CML_K_,CML_MAPWIDPT_,1,-1
+!			CML_MAPCOORD_(CML_I_,1)=CML_MAPLENMIN_+(CML_J_-1)*CML_MAPLENINT_
+!			*IF,CML_MAPCOORD_(CML_I_,1),GT,CML_MAPLENMAX_,THEN
+!				CML_MAPCOORD_(CML_I_,1)=CML_MAPLENMAX_
+!			*ENDIF
+!			CML_MAPCOORD_(CML_I_,2)=CML_MAPWIDMIN_+(CML_K_-1)*CML_MAPWIDINT_
+!			*IF,CML_MAPCOORD_(CML_I_,2),GT,CML_MAPWIDMAX_,THEN
+!				CML_MAPCOORD_(CML_I,2)=CML_MAPWIDMAX_
+!			*ENDIF
+!			CML_MAPCOORD_(CML_I_,3)=0
+!			CML_I_=CML_I_+1
+!		*ENDDO
+!	*ENDDO
+!*ENDIF
+!*DIM,CML_REFPTCOORD_,ARRAY,1,3
+!*DIM,CML_REFPTDISP_,ARRAY,1,1
+!CML_REFPTCOORD_(1,1)=(CML_LENMAX_+CML_LENMIN_)/2
+!CML_REFPTCOORD_(1,2)=(CML_WIDMAX_+CML_WIDMIN_)/2
+!CML_REFPTCOORD_(1,3)=CML_ABSLOC_
+!*MOPER,CML_REFPTDISP_(1,1),CML_REFPTCOORD_(1,1),MAP,CML_DISPSOL2_(1,1),CML_COORD2_(1,1),2
+! now map
+*MOPER,CML_MAPDISPSOL_(1,1),CML_MAPCOORD_(1,1),MAP,CML_DISPSOL2_(1,1),CML_COORD2_(1,1),2,1/(SQRT(CML_ABSNODETOT_)),0
+!we need to do unit conversion since we must have nm & mm for bounds and displacement, here define the factor first
+*IF,CML_UNITSYSID_,EQ,1,THEN
+	CML_DISPCOEF_=1E9
+	CML_BOUNDCOEF_=1E3
+*ELSEIF,CML_UNITSYSID_,EQ,2,THEN
+	CML_DISPCOEF_=1E3
+	CML_BOUNDCOEF_=1E-3
+*ENDIF
+! for writing ,we define a new array for vector writing
+*DIM,CML_RELDISPSOL_,ARRAY,CML_MAPWIDPT_,1
+! open file
+*CFOPEN,Usergeom01,dat
+! save the area
+*VWRITE,CML_XMIN_*CML_LEN_*CML_BOUNDCOEF_,CML_XMAX_*CML_LEN_*CML_BOUNDCOEF_,CML_YMIN_*CML_WID_*CML_BOUNDCOEF_,CML_YMAX_*CML_WID_*CML_BOUNDCOEF_
+(F10.5,' ',F10.5,' ',F10.5,' ',F10.5)
+! save the points number
+*VWRITE,CML_MAPLENPT_,CML_MAPWIDPT_
+%8d %8d
+! if the constraint option is on, we use relative displacement, then here we need to define the minimum displacement
+*IF,CML_IFBACKFIXED_,EQ,1,THEN
+	!CML_REFDISP_=CML_REFPTDISP_(1,1)
+	*IF,CML_UPDOWN_,EQ,1,THEN
+		*VSCFUN,CML_REFDISP_,MIN,CML_MAPDISPSOL_
+	*ELSEIF,CML_UPDOWN_,EQ,2,THEN
+		*VSCFUN,CML_REFDISP_,MAX,CML_MAPDISPSOL_
+	*ENDIF
+*ELSE
+	CML_REFDISP_=0
+*ENDIF
+*IF,CML_UPDOWN_,EQ,1,THEN
+!	*VSCFUN,CML_REFDISP_,MIN,CML_MAPDISPSOL_
+	CML_I_=1
+	*DO,CML_J_,1,CML_MAPLENPT_,1
+		*DO,CML_K_,1,CML_MAPWIDPT_,1
+			CML_RELDISPSOL_(CML_K_,1)=(CML_MAPDISPSOL_(CML_I_,1)-CML_REFDISP_)*CML_DISPCOEF_
+			CML_I_=CML_I_+1
+		*ENDDO
+		*VWRITE,CML_RELDISPSOL_(1)
+(F10.5 $)
+		*VWRITE
+(' ')
+	*ENDDO
+*ELSEIF,CML_UPDOWN_,EQ,2,THEN
+!	*VSCFUN,CML_REFDISP_,MAX,CML_MAPDISPSOL_
+	CML_I_=1
+	*DO,CML_J_,1,CML_MAPLENPT_,1
+		*DO,CML_K_,1,CML_MAPWIDPT_,1
+			CML_RELDISPSOL_(CML_K_,1)=(-CML_MAPDISPSOL_(CML_I_,1)+CML_REFDISP_)*CML_DISPCOEF_
+			CML_I_=CML_I_+1
+		*ENDDO
+		*VWRITE,CML_RELDISPSOL_(1)
+(F10.5 $)
+		*VWRITE
+(' ')
+	*ENDDO
+*ENDIF
+! close file
+*CFCLOS
+! also save the reference displacement
+*CFOPEN, RefDisp, dat
+CML_REFDISP_=CML_REFDISP_*CML_DISPCOEF_
+*VWRITE, CML_REFDISP_
+(F10.5)
+*CFCLOS
+!
+!DELETE ALL CML DEFINED VARIABLES
+*DEL,,PRM_
+!
+SAVE,CMLTFC,db,,ALL
